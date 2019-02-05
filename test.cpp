@@ -13,5 +13,8 @@ int main() {
   y = x;
   cout << "x Cons size = " << x.size() << ", uniq=" << x.uniq() << endl;
   cout << "y Cons size = " << y.size() << ", uniq=" << y.uniq() << endl;
-
+  x = Slist::slist<int>();
+  cout << "concat by cons test" << endl;
+  x = Slist::cons(1,Slist::cons(2,Slist::cons(3,Slist::slist<int>())));
+  cout << "x Cons size = " << x.size() << ", uniq=" << x.uniq() << endl;
 }

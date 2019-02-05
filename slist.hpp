@@ -51,15 +51,28 @@ public:
 
     // cons constructor
     slist (T head, slist const &tail) : p(new node_t<T> {1,tail.p,head}) { 
-// cout << "cons constructor" << endl; 
+cout << "lvalue cons constructor" << endl; 
       tail.incref(); 
     }
 
+    // cons constructor (rvalue tail)
+    slist (T head, slist &&tail) : p(new node_t<T> {1,tail.p,head}) { 
+      tail.p=nullptr;
+cout << "rvalue cons constructor" << endl; 
+    }
+
+
     // copy constructor increments refcnt is not empty
-    slist(slist const& that): p(that.p) { incref(); }
+    slist(slist const& that): p(that.p) { 
+      cout << "Copy ctor" << endl;
+      incref(); 
+    }
 
     // move constructor sets argument to empty
-    slist(slist && that): p(that.p) { that.p = nullptr; }
+    slist(slist && that): p(that.p) { 
+      cout << "Move ctor" << endl;
+      that.p = nullptr; 
+    }
 
     // copy assignment
     slist &operator=(slist const& that) {
@@ -76,7 +89,7 @@ public:
 
     // move assignment
     slist &operator=(slist && that) {
-// cout << "rvalue assignment" << endl;
+cout << "rvalue assignment" << endl;
       decref();
       p = that.p;
       that.p = nullptr;
@@ -95,10 +108,16 @@ public:
     }
 
     // cons: return a new list with given head and this list as the tail
-    slist cons (T head) const {
-//cout << "Cons method" << endl;
+    slist cons (T head) const & {
+cout << "lvalue Cons method" << endl;
       return slist (head, *this);
     }
+
+   slist cons (T head) && {
+cout << "rvalue Cons method" << endl;
+      return slist (head, ::std::move(*this));
+    }
+
 
     size_t size() const {
       size_t n = 0; 
@@ -112,6 +131,9 @@ public:
   // cons
   template<class T>
   static slist<T> cons (T head, slist<T> const &tail) { return tail.cons(head); }
+
+  template<class T>
+  static slist<T> cons (T head, slist<T> &&tail) { return ::std::move(tail).cons(head); }
 
   // precondition: x not empty
   template<class T>
