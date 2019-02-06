@@ -61,8 +61,7 @@ cout << "lvalue cons constructor" << endl;
 cout << "rvalue cons constructor" << endl; 
     }
 
-
-    // copy constructor increments refcnt is not empty
+    // copy constructor increments refcnt if not empty
     slist(slist const& that): p(that.p) { 
       cout << "Copy ctor" << endl;
       incref(); 
@@ -124,6 +123,21 @@ cout << "rvalue Cons method" << endl;
       for(auto q=p;q;q=q->next,++n); 
       return n; 
     }
+
+   slist<T> rev() const {
+     slist<T> r; // empty
+     auto q = p;
+     while(q) {
+       r = r.cons(q->data);
+       q = q->next;
+     }
+     return r;
+   }
+
+   T head() const { return p->data; }
+
+   slist<T> tail () const { return p->next; }
+
   };  // slist
  
   // functional interface
@@ -137,12 +151,12 @@ cout << "rvalue Cons method" << endl;
 
   // precondition: x not empty
   template<class T>
-  static T head (slist<T> const &x) { return x.p->data; }
+  static T head (slist<T> const &x) { return x.head(); }
 
   // tail
   // precondition: x not empty
   template<class T>
-  static slist<T> tail (slist<T> const &x) { return slist<T> (x.p->next); }
+  static slist<T> tail (slist<T> const &x) { return x.tail(); }
 
   // uniqueness test
   template<class T>
@@ -152,5 +166,18 @@ cout << "rvalue Cons method" << endl;
   template<class T>
   static bool empty (slist<T> const &x) { return x.empty(); }
 
+
+  template<class T, class F> 
+  static string str(F f, slist<T> const &x) {
+    if (x.empty()) return "()";
+    auto h = head (x);
+    auto t = tail (x);
+    auto s = "(" + f (h);
+    for(;!empty(t); t = tail(t)) {
+      h = head (t);
+      s += ", " + f(h);
+    }
+    return s + ")";
+  }
 
 }; // Slist

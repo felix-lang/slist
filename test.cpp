@@ -1,6 +1,10 @@
 #include "slist.hpp"
 #include <iostream>
+#include <string>
+
 using namespace std;
+
+string int_to_string(int x) { return to_string(x); }
 
 int main() {
   cout << "Hello world" << endl; 
@@ -17,4 +21,8 @@ int main() {
   cout << "concat by cons test" << endl;
   x = Slist::cons(1,Slist::cons(2,Slist::cons(3,Slist::slist<int>())));
   cout << "x Cons size = " << x.size() << ", uniq=" << x.uniq() << endl;
+  cout << "Forward= " << Slist::str (int_to_string,x) << endl;
+  x = x.rev();
+  cout << "x Cons size = " << x.size() << ", uniq=" << x.uniq() << endl;
+  cout << "Reversed = " << Slist::str (int_to_string,x) << endl;
 }
