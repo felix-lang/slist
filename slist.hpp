@@ -18,6 +18,7 @@ class Slist {
 public:
   template<class T>
   class slist {
+    friend class Slist;
     node_t<T> *p;
 
     void decref() {
@@ -38,6 +39,20 @@ public:
     }
 
     slist (node_t<T> *q) : p(q) { incref(); }
+
+    void inplace_rev() {
+      auto q = p; 
+      if(!q) return; // empty list
+      while (auto s = q->next) // next node s
+      {
+        s->next = q; // reverse pointer
+        q = s; // step
+      }
+      p->next = nullptr; // end of list
+      p = q; // last node is new head
+      return;
+    }
+    friend slist<T> Slist::rev(slist<T>&&);
 
   public:
     // destructor
@@ -178,6 +193,28 @@ cout << "rvalue Cons method" << endl;
       s += ", " + f(h);
     }
     return s + ")";
+  }
+
+  // copying rev
+  template<class T>
+  static slist<T> rev (slist<T> const &a) {
+    auto x = a;
+    auto y = slist<T>();
+    while(!x.empty()) {
+      y = cons(x.head(), y);
+      x = x.tail();
+    }
+    return std::move(y);
+  }
+
+  // maybe in place rev
+  template<class T>
+  static slist<T> rev(slist<T> &&x) {
+    if(x.uniq()) {
+      x.inplace_rev();
+      return std::move(x);
+    }
+    return rev(x);
   }
 
 }; // Slist

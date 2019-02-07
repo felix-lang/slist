@@ -22,7 +22,9 @@ int main() {
   x = Slist::cons(1,Slist::cons(2,Slist::cons(3,Slist::slist<int>())));
   cout << "x Cons size = " << x.size() << ", uniq=" << x.uniq() << endl;
   cout << "Forward= " << Slist::str (int_to_string,x) << endl;
-  x = x.rev();
+  x = Slist::rev (x);
   cout << "x Cons size = " << x.size() << ", uniq=" << x.uniq() << endl;
   cout << "Reversed = " << Slist::str (int_to_string,x) << endl;
+  x = Slist::rev (std::move(x)); // in place reversal
+  cout << "Reversed again = " << Slist::str (int_to_string,x) << endl;
 }
