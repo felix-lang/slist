@@ -22,26 +22,20 @@ public:
     node_t<T> *p;
 
     void decref() {
-// cout << "decref-start" << endl;
       auto top = p;
       while(top && --top->refcnt == 0) {
-// cout << "decref loop" << endl;
         auto tmp = top->next;
         delete top;
         top = tmp;
       }
-// cout << "decref-end" << endl;
     }
     void incref() const {
-// cout << "incref-start" << endl;
       if(p)p->refcnt++;
-// cout << "incref-end" << endl;
     }
 
     slist (node_t<T> *q) : p(q) { incref(); }
 
     void inplace_rev() {
-cout << "In place rev start" << endl;
       node_t<T> *nutail = nullptr; 
       auto cur = p;
       while(cur)
@@ -52,11 +46,45 @@ cout << "In place rev start" << endl;
         cur = oldtail;                                  // set current to saved old tail
       }
       p = nutail;               
-     }
+    }
+    node_t<T> *last() const {
+      auto p1 = p;
+      node_t<T> *p2 = nullptr;;
+      while(p1) {
+        p2 = p1;
+        p1 = p1 -> next;
+      }
+      return p2;
+    }
+
+    // splice two lists together
+    // not safe unless this list is unqqie
+    // this routine does NOT increment y's refcount
+    // because if it sourced from an rvalue it is invariant,
+    // but should be incremented if sourced from an lvalue
+    // the caller must do the incref!
+    void splice (node_t<T> *y) {
+      if (!p) { // this list is empty 
+        if(y) { // that list is non-empty
+          p = y;  // set this list to that list
+        } 
+        // else both lists empty, nothing to do
+        return; 
+      }
+cout << "splice to last" << endl;
+      // this list is not empty
+      if(y) last() -> next = y;
+      return;
+    }
+     
+
 
   public:
     // destructor
-    ~slist() { cout << "slist destructor" << endl; decref(); }
+    ~slist() {
+      //cout << "slist destructor" << endl; 
+      decref(); 
+    }
 
     // default constructor is empty list
     slist() : p (nullptr) {}
@@ -66,44 +94,37 @@ cout << "In place rev start" << endl;
 
     // cons constructor
     slist (T head, slist const &tail) : p(new node_t<T> {1,tail.p,head}) { 
-cout << "lvalue cons constructor" << endl; 
       tail.incref(); 
     }
 
     // cons constructor (rvalue tail)
     slist (T head, slist &&tail) : p(new node_t<T> {1,tail.p,head}) { 
       tail.p=nullptr;
-cout << "rvalue cons constructor" << endl; 
     }
 
     // copy constructor increments refcnt if not empty
     slist(slist const& that): p(that.p) { 
-      cout << "Copy ctor" << endl;
+      //cout << "Copy ctor" << endl;
       incref(); 
     }
 
     // move constructor sets argument to empty
     slist(slist && that): p(that.p) { 
-      cout << "Move ctor" << endl;
       that.p = nullptr; 
     }
 
     // copy assignment
     slist &operator=(slist const& that) {
-//cout << "Copy assignment start" << endl;
       if (this != &that) {
-//cout << "Copy assignment do" << endl;
          decref();
          p = that.p;
          incref();
       }
-//cout << "Copy assignment end" << endl;
       return *this;
     }
 
     // move assignment
     slist &operator=(slist && that) {
-cout << "rvalue assignment" << endl;
       decref();
       p = that.p;
       that.p = nullptr;
@@ -115,7 +136,6 @@ cout << "rvalue assignment" << endl;
 
     // unique list: not empty list is considered uniq
     bool uniq() const { 
-// cout << "unique start" << endl;
       for(auto q = p; q; q=q->next)
         if(q->refcnt>1) return false; 
       return true; 
@@ -123,12 +143,10 @@ cout << "rvalue assignment" << endl;
 
     // cons: return a new list with given head and this list as the tail
     slist cons (T head) const & {
-cout << "lvalue Cons method" << endl;
       return slist (head, *this);
     }
 
    slist cons (T head) && {
-cout << "rvalue Cons method" << endl;
       return slist (head, ::std::move(*this));
     }
 
@@ -152,11 +170,20 @@ cout << "rvalue Cons method" << endl;
    T head() const { return p->data; }
 
    slist<T> tail () const { return p->next; }
+   // pre-incr (set to tail, return prev)
+   slist &operator ++ () { auto cur = *this; p = p-> next; return cur; }
+   // post-incr (set to tail, return value)
+   slist operator ++ (int) { p = p-> next; return *this; }
+   // deref (head)
+   void operator *() const { return p->data; }
 
   };  // slist
- 
-  // functional interface
 
+  // **********************************************************
+  // functional interface
+  // **********************************************************
+
+  // **********************************************************
   // cons
   template<class T>
   static slist<T> cons (T head, slist<T> const &tail) { return tail.cons(head); }
@@ -164,24 +191,31 @@ cout << "rvalue Cons method" << endl;
   template<class T>
   static slist<T> cons (T head, slist<T> &&tail) { return ::std::move(tail).cons(head); }
 
+  // **********************************************************
+  // head
   // precondition: x not empty
   template<class T>
   static T head (slist<T> const &x) { return x.head(); }
 
+  // **********************************************************
   // tail
   // precondition: x not empty
   template<class T>
   static slist<T> tail (slist<T> const &x) { return x.tail(); }
 
+  // **********************************************************
   // uniqueness test
   template<class T>
   static bool uniq (slist<T> const &x) { return x.uniq(); }
 
+  // **********************************************************
   // empty test
   template<class T>
   static bool empty (slist<T> const &x) { return x.empty(); }
 
 
+  // **********************************************************
+  // conversion to string
   template<class T, class F> 
   static string str(F f, slist<T> const &x) {
     if (x.empty()) return "()";
@@ -195,6 +229,7 @@ cout << "rvalue Cons method" << endl;
     return s + ")";
   }
 
+  // **********************************************************
   // copying rev
   template<class T>
   static slist<T> rev (slist<T> const &a) {
@@ -217,4 +252,21 @@ cout << "rvalue Cons method" << endl;
     return rev(x);
   }
 
+  // **********************************************************
+  // join two lists
+  // unoptimised
+  // FIXME! C++ can copy a list without reversing it
+  template<class T>
+  static slist<T> join (slist<T> const &a, slist<T> const &b) {
+    if (a.empty()) return b;
+    if (b.empty()) return a;
+    slist<T> res;
+    slist<T> left = a;
+    while(!left.empty()) { res = res.cons(left.head()); left = left.tail(); }
+    res.inplace_rev();
+    // note: faster splice uses the fact we already know the tail node
+    res.splice(b.p);
+    b.incref();
+    return res;
+  }
 }; // Slist
