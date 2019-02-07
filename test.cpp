@@ -31,6 +31,8 @@ int main() {
   cout << "Reversed again inplace  = " << Slist::str (int_to_string,x) << endl;
 
   auto z = Slist::join (x,y);
-  cout << " x join y = " << Slist::str (int_to_string,z) << endl;
+  cout << " z = x join y = " << Slist::str (int_to_string,z) << endl;
+  auto k = Slist::copy (z);
+  cout << " k = copy z " << Slist::str (int_to_string,k) << endl;
 
 }

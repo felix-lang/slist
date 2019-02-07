@@ -252,6 +252,20 @@ cout << "splice to last" << endl;
     return rev(x);
   }
 
+  template<class T>
+  static slist<T> copy(slist<T> const &x) {
+    auto res = slist<T>(); // Empty
+    auto pprev = &(res.p);  // place to put pointer to new node
+    auto q = x.p;
+    while(q) {
+      auto newnode = new node_t<T>{1,nullptr, q->data};
+      q = q->next;
+      *pprev = newnode;
+      pprev = &(newnode->next);
+    }
+    return res;
+  }
+
   // **********************************************************
   // join two lists
   // unoptimised
