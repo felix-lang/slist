@@ -41,18 +41,18 @@ public:
     slist (node_t<T> *q) : p(q) { incref(); }
 
     void inplace_rev() {
-      auto q = p; 
-      if(!q) return; // empty list
-      while (auto s = q->next) // next node s
+cout << "In place rev start" << endl;
+      node_t<T> *nutail = nullptr; 
+      auto cur = p;
+      while(cur)
       {
-        s->next = q; // reverse pointer
-        q = s; // step
+        auto oldtail = cur->next;   // save old tail in temp
+        cur->next= nutail;          // overwrite current node tail
+        nutail = cur;                                   // set new tail to current
+        cur = oldtail;                                  // set current to saved old tail
       }
-      p->next = nullptr; // end of list
-      p = q; // last node is new head
-      return;
-    }
-    friend slist<T> Slist::rev(slist<T>&&);
+      p = nutail;               
+     }
 
   public:
     // destructor

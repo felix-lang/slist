@@ -26,5 +26,5 @@ int main() {
   cout << "x Cons size = " << x.size() << ", uniq=" << x.uniq() << endl;
   cout << "Reversed = " << Slist::str (int_to_string,x) << endl;
   x = Slist::rev (std::move(x)); // in place reversal
-  cout << "Reversed again = " << Slist::str (int_to_string,x) << endl;
+  cout << "Reversed again inplace  = " << Slist::str (int_to_string,x) << endl;
 }
