@@ -263,7 +263,7 @@ cout << "splice to last" << endl;
       *pprev = newnode;
       pprev = &(newnode->next);
     }
-    return res;
+    return std::move(res);
   }
 
   // **********************************************************
