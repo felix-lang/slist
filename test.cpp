@@ -35,4 +35,10 @@ int main() {
   auto k = Slist::copy (z);
   cout << " k = copy z " << Slist::str (int_to_string,k) << endl;
 
+  cout << " Iterator ";
+  for (auto it = z.begin(); !(it == z.end()); ++it) cout << *it << ", ";
+  cout << endl;
+
+  cout << "Container "; for (auto v : k) cout << v << ","; cout << endl;
+
 }

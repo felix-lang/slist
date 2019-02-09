@@ -1,5 +1,5 @@
-Functional Interface
-====================
+Interface
+=========
 
 empty
 -----
@@ -7,6 +7,7 @@ empty
 .. code-block:: c++
 
   empty(x)
+  x.empty()
 
 Returns true if the list x is empty, false otherwise.
 
@@ -28,7 +29,7 @@ singleton
 
   singleton(v)
 
-Returns a unique list of one element v.
+TODO. Returns a unique list of one element v.
 
 slist_from_container
 --------------------
@@ -36,6 +37,8 @@ slist_from_container
 .. code-block:: c++
 
   slist_from_container (C)
+
+TODO.
 
 Requires C be an STL container with a begin() method returning
 an input iterator and an end() method returning an end iterator.
@@ -49,6 +52,8 @@ slist_from_iterator_range
 
   slist_from_iterator (begin,end)
 
+TODO.
+
 Requires begin, end be valid iterators for a sequence.
 Returns all the values in the range of the begin iterator
 up to but excluding the end iterator.
@@ -59,54 +64,9 @@ size
 .. code-block:: c++
 
  size(x)
+ x.size()
 
 Returns the length of the list x.
-
-begin
------
-
-.. code-block:: c++
-
- begin(x)
-
-Returns copy of the list handle.
-
-end
----
-
-.. code-block:: c++
-
- end(x)
-
-Returns empty list.
-
-operator ==
------------
-
-.. code-block:: c++
-
-  x == y
-
-Requires x or y be an empty list or both must be
-handles to the same list. Returns true if x and y are
-both empty or both denote the same node of a list.
-
-If x and y are non-empty, equality implies the x and
-y are the same length, inequaly implies either the
-lists have distinct lengths or are not the same list.
-
-Note that this function will return false, even if the
-contents of two list are equal. It is designed to be
-used to support the use of list handles as iterators.
-
-Another way to define this function is that it has a precondition
-that x and y must be the same list, or, one must be a sublist
-of the other. Given this pre-condition, the operator returns
-true if an only if the lists are the same length.
-
-Operationally, this function just compares the pointers
-stored in the list handles.
-
 
 uniq
 ----
@@ -134,7 +94,6 @@ head
 .. code-block:: c++
 
   head (x)
-  *x
 
 
 Precondition non-empty list. Returns first value on the list.
@@ -177,7 +136,14 @@ copy
 
   copy (x)
 
-If x is unique, returns x otherwise returns a unique copy of x.
+Makes a copy of the list. Always unique.
+
+make_unique
+-----------
+
+Returns the list if it is unique, or a copy otherwise.
+Result is always unique.
+
 
 map
 ---
@@ -186,8 +152,19 @@ map
 
   map (f,x)
 
-Returns a unique list with elements the result of applying
-f to each element of x.
+TODO
+Returns a list with elements the result of applying
+f to each element of x. Always unique.
+
+filter
+------
+
+.. code-block:: c++
+
+  filter (f,x)
+
+Returns a sublist of elements of x satifying predicate f(v).
+Always unique.
 
 fold_left
 ---------
@@ -196,6 +173,7 @@ fold_left
 
   fold_left (f,init,x)
 
+TODO.
 Uses f to fold each value of x starting at the front into init.
 Returns final result. f must accept two arguments,
 the first of type U, the type of init, and the second
@@ -208,16 +186,85 @@ zip
 
   zip(x,y)
 
+TODO.
 Precondition, x and y have the same length. Returns a list of
-pairs of corresponding element from x and y.
+std::pair of corresponding element from x and y.
+
+unzip
+-----
 
 .. code-block:: c++
 
-  unzip(x,y)
+  unzip(x)
+
+TODO.
+Splits a list of pairs into a pair of lists. Precondition, the
+value type of x must be a std::pair.
+
+begin
+-----
+
+.. code-block:: c++
+
+ begin(x)
+ x.begin()
+
+Returns list iterator starting at head of list.
+
+ 
+end
+---
+
+.. code-block:: c++
+
+ end(x)
+ x.end()
+
+Returns terminal list iterator.
 
 
 
+Iterator Interface
+==================
 
+operator ==
+-----------
 
+.. code-block:: c++
 
+  p == q
+
+operator !=
+-----------
+
+.. code-block:: c++
+
+  x == y
+
+operator ++
+-----------
+
+.. code-block:: c++
+
+   ++p
+ 
+Preincrement iterator. Precondition not at end.
+
+operator ++(int)
+----------------
+
+.. code-block:: c++
+
+   p++
+ 
+Postincrement iterator. Precondition not at end.
+
+operator *
+----------
+
+.. code-block:: c++
+
+  *p
+
+Fetch value.  Precondition not at end.
 

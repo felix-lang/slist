@@ -157,31 +157,61 @@ cout << "splice to last" << endl;
       return n; 
     }
 
-   slist<T> rev() const {
-     slist<T> r; // empty
-     auto q = p;
-     while(q) {
-       r = r.cons(q->data);
-       q = q->next;
-     }
-     return r;
-   }
+    slist rev() const {
+      slist<T> r; // empty
+      auto q = p;
+      while(q) {
+        r = r.cons(q->data);
+        q = q->next;
+      }
+      return r;
+    }
 
-   T head() const { return p->data; }
+    T head() const { return p->data; }
 
-   slist<T> tail () const { return p->next; }
-   // pre-incr (set to tail, return prev)
-   slist &operator ++ () { auto cur = *this; p = p-> next; return cur; }
-   // post-incr (set to tail, return value)
-   slist operator ++ (int) { p = p-> next; return *this; }
-   // deref (head)
-   void operator *() const { return p->data; }
+    slist tail () const { return p->next; }
+
+    template<class U>
+    class slist_iterator;
+
+    friend slist_iterator<T>;
+
+    // **********************************************************
+    // iterator
+    template<class U>
+    class slist_iterator  {
+      slist<U> s;
+    public:
+      slist_iterator (slist<U> const& x) : s(x) {}
+ 
+      // pre-incr (set to tail, return prev)
+      slist_iterator &operator ++ () { s.p = s.p-> next; return *this; }
+      // post-incr (set to tail, return value)
+      slist_iterator operator ++ (int) { auto cur = *this; s.p = s.p-> next; return cur; }
+      // deref (head)
+      U operator *() const { return s.p->data; }
+      // identity (not value equality)
+      bool operator == (slist_iterator<T> const &y) const { return s.p == y.s.p; }
+      // identity (not value equality)
+      bool operator != (slist_iterator<T> const &y) const { return s.p != y.s.p; }
+    };
+
+    // start iterator
+    slist_iterator<T> begin() const { return slist_iterator<T> {*this} ; }
+    // end iterator
+    slist_iterator <T> end() const { return slist<T>(); }
+
 
   };  // slist
+
+
 
   // **********************************************************
   // functional interface
   // **********************************************************
+
+  template<class T>
+  static size_t size(slist<T> const &x) { return x.size(); }
 
   // **********************************************************
   // cons
