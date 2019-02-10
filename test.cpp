@@ -6,6 +6,9 @@
 using namespace std;
 
 string int_to_string(int x) { return to_string(x); }
+string intpair_to_string(pair<int,int> x) { 
+  return "(" + to_string(x.first) +"," + to_string(x.second) + ")"; 
+}
 string double_to_string(double x) { return to_string(x); }
 
 using namespace Slist;
@@ -76,6 +79,12 @@ int main() {
 
   auto mapped2 = map<double>(lfi,[] (int x) { return double(x) + 0.1; });
   cout << "mapped " << str (double_to_string, mapped2) << endl;
+
+  auto zipped = zip(lfv,filtered2);
+  cout << "zipped " << str (intpair_to_string, zipped) << endl;
+  auto uz = unzip(zipped);
+  cout << "unzipped first " << str (int_to_string, uz.first) << endl;
+  cout << "unzipped second " << str (int_to_string, uz.second) << endl;
 
 
   

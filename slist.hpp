@@ -2,6 +2,7 @@
 #pragma once
 
 #include <cstdlib>
+#include <utility>
 
 // for debugging only
 #include <iostream>
@@ -36,6 +37,13 @@ namespace Slist {
 
     template<class U, class I>
     friend slist<U> slist_from_iterators(I const &begin, I const &end);
+
+    template<class U, class V>
+    friend slist<std::pair<U,V> > zip (slist<U> const &a, slist<V> const &b);
+
+    template<class U, class V>
+    friend std::pair<slist<U>,slist<V>> unzip (slist<std::pair<U,V>> const &a);
+
 
     template<class U>
     friend class slist;
@@ -470,7 +478,47 @@ cout << "splice to last" << endl;
   template<class T, class F>
   slist<T> filter(slist<T> const &x, F f) { return x.filter(f); }
   
- 
+  template<class T, class U>
+  slist<std::pair<T,U> > zip (slist<T> const &a, slist<U> const &b) {
+    using P = std::pair<T,U>;
+    auto i = a.begin();
+    auto ie = a.end();
+    auto j = b.begin();
+    auto je = b.end();
+    node_t<P> *head = nullptr;
+    node_t<P> **last = &head;
+    node_t<P> *cur = nullptr;
+    for (;i != ie && j != je; ++i,++j) {
+      cur = new node_t<P> {1,nullptr,make_pair(*i,*j)};
+      *last = cur;
+      last = &(cur->next);
+    }
+    return slist {head}; 
+  } 
+
+  template<class T, class U>
+  std::pair<slist<T>,slist<U>> unzip (slist<pair<T,U>> const &a) {
+    using P = std::pair<T,U>;
+    auto i = a.begin();
+    auto ie = a.end();
+    node_t<T> *lhead = nullptr;
+    node_t<T> **llast = &lhead;
+    node_t<T> *lcur = nullptr;
+    node_t<U> *rhead = nullptr;
+    node_t<U> **rlast = &rhead;
+    node_t<U> *rcur = nullptr;
+
+    for (;i != ie ; ++i) {
+      auto v = *i;
+      lcur = new node_t<T> {1,nullptr,v.first};
+      *llast = lcur;
+      llast = &(lcur->next);
+      rcur = new node_t<U> {1,nullptr,v.second};
+      *rlast = rcur;
+      rlast = &(rcur->next);
+    }
+    return make_pair(slist {lhead}, slist {rhead}); 
+  } 
 
 }; // Slist
 
