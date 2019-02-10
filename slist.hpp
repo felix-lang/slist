@@ -3,6 +3,7 @@
 
 #include <cstdlib>
 #include <utility>
+#include <initializer_list>
 
 // for debugging only
 #include <iostream>
@@ -16,6 +17,20 @@ namespace Slist {
      node_t *next;
      T data;
   };
+
+  template<class U>
+  struct output_control_t {
+    node_t<U> *head;
+    node_t<U> **last;
+    node_t<U> *cur;
+    output_control_t() { head = nullptr; last = &head; cur = nullptr; }
+    void put(U const &v) {
+      cur = new node_t<U> {1,nullptr,v};
+      *last = cur;
+      last = &(cur->next);
+    }
+  };
+
 
   template<class T>
   class slist {
@@ -32,8 +47,8 @@ namespace Slist {
     template<class U>
     friend slist<U> copy(slist<U> const &x);
 
-    template<class U, class C>
-    friend slist<U> slist_from_container(C c);
+    template<class C>
+    friend auto slist_from_container(C const &c) -> slist<typename C::value_type>;
 
     template<class U, class I>
     friend slist<U> slist_from_iterators(I const &begin, I const &end);
@@ -121,6 +136,12 @@ cout << "splice to last" << endl;
     // one element list
     slist (T v) : p(new node_t<T> {1,nullptr,v}) {}
 
+    slist (std::initializer_list<T> const &c) {
+      output_control_t<T> o;
+      for (auto v : c) o.put(v);
+      p =o.head;
+    }
+
     // cons constructor
     slist (T head, slist const &tail) : p(new node_t<T> {1,tail.p,head}) { 
       tail.incref(); 
@@ -132,13 +153,13 @@ cout << "splice to last" << endl;
     }
 
     // copy constructor increments refcnt if not empty
-    slist(slist const& that): p(that.p) { 
+    slist(slist const& that)noexcept : p(that.p) { 
       //cout << "Copy ctor" << endl;
       incref(); 
     }
 
     // move constructor sets argument to empty
-    slist(slist && that): p(that.p) { 
+    slist(slist && that)noexcept : p(that.p) { 
       that.p = nullptr; 
     }
 
@@ -161,10 +182,10 @@ cout << "splice to last" << endl;
     }
 
     // empty list
-    bool empty() const { return p == nullptr; }
+    bool empty() const noexcept { return p == nullptr; }
 
     // unique list: not empty list is considered uniq
-    bool uniq() const { 
+    bool uniq() const noexcept { 
       for(auto q = p; q; q=q->next)
         if(q->refcnt>1) return false; 
       return true; 
@@ -175,12 +196,12 @@ cout << "splice to last" << endl;
       return slist (head, *this);
     }
 
-   slist cons (T head) && {
+    slist cons (T head) && {
       return slist (head, ::std::move(*this));
     }
 
 
-    size_t size() const {
+    size_t size() const noexcept {
       size_t n = 0; 
       for(auto q=p;q;q=q->next,++n); 
       return n; 
@@ -204,15 +225,9 @@ cout << "splice to last" << endl;
     // is an operator T->T the data can just be updated in place
     template<class U, class F>
     slist<U> map(F f) const {
-      node_t<U> *head = nullptr;
-      node_t<U> **last = &head;
-      node_t<U> *cur = nullptr;
-      for (auto v : *this) {
-        cur = new node_t<U> {1,nullptr,f(v)};
-        *last = cur;
-        last = &(cur->next);
-      }
-      return slist<U> {head}; 
+      output_control_t<U> o;
+      for (auto v : *this) o.put(f(v));
+      return slist<U> {o.head}; 
     }
 
 
@@ -221,17 +236,10 @@ cout << "splice to last" << endl;
     // the nodes of the selected elements.
     template<class F>
     slist filter(F f) const {
-      node_t<T> *head = nullptr;
-      node_t<T> **last = &head;
-      node_t<T> *cur = nullptr;
-      for (auto v : *this) {
-        if (f (v)) {
-          cur = new node_t<T> {1,nullptr,v};
-          *last = cur;
-          last = &(cur->next);
-        }
-      }
-      return slist<T> {head}; 
+      output_control_t<T> o;
+      for (auto v : *this)
+        if (f (v)) o.put(v);
+      return slist<T> {o.head}; 
     }
 
 
@@ -399,16 +407,9 @@ cout << "splice to last" << endl;
 
   template<class T>
   slist<T> copy(slist<T> const &x) {
-    auto res = slist<T>(); // Empty
-    auto pprev = &(res.p);  // place to put pointer to new node
-    auto q = x.p;
-    while(q) {
-      auto newnode = new node_t<T>{1,nullptr, q->data};
-      q = q->next;
-      *pprev = newnode;
-      pprev = &(newnode->next);
-    }
-    return std::move(res);
+    output_control_t<T> o;
+    for (auto v: x) o.put(v);
+    return slist (o.head);
   }
 
   // **********************************************************
@@ -431,17 +432,12 @@ cout << "splice to last" << endl;
   // **********************************************************
   // Construct from STL container
   // container value type must be T
-  template<class T, class C>
-  slist<T> slist_from_container(C c) {
-    node_t<T> *head = nullptr;
-    node_t<T> **last = &head;
-    node_t<T> *cur = nullptr;
-    for (auto v : c) {
-      cur = new node_t<T> {1,nullptr,v};
-      *last = cur;
-      last = &(cur->next);
-    }
-    return slist {head}; 
+  template<class C>
+  auto slist_from_container(C const &c) -> slist<typename C::value_type> {
+    using T = typename C::value_type;
+    output_control_t<T> o;
+    for (auto v : c) o.put(v);
+    return slist (o.head); 
   }
 
   // **********************************************************
@@ -449,15 +445,9 @@ cout << "splice to last" << endl;
   // iterator value type must be T
   template<class T, class I>
   slist<T> slist_from_iterators(I const &begin, I const &end) {
-    node_t<T> *head = nullptr;
-    node_t<T> **last = &head;
-    node_t<T> *cur = nullptr;
-    for (auto j  = begin; j != end; ++j) {
-      cur = new node_t<T> {1,nullptr,*j};
-      *last = cur;
-      last = &(cur->next);
-    }
-    return slist {head}; 
+    output_control_t<T> o;
+    for (auto j  = begin; j != end; ++j) o.put(*j);
+    return slist (o.head); 
   }
 
   template<class T>
@@ -485,15 +475,11 @@ cout << "splice to last" << endl;
     auto ie = a.end();
     auto j = b.begin();
     auto je = b.end();
-    node_t<P> *head = nullptr;
-    node_t<P> **last = &head;
-    node_t<P> *cur = nullptr;
+    output_control_t<P> o;
     for (;i != ie && j != je; ++i,++j) {
-      cur = new node_t<P> {1,nullptr,make_pair(*i,*j)};
-      *last = cur;
-      last = &(cur->next);
+      o.put(make_pair(*i,*j));
     }
-    return slist {head}; 
+    return slist (o.head); 
   } 
 
   template<class T, class U>
@@ -501,23 +487,15 @@ cout << "splice to last" << endl;
     using P = std::pair<T,U>;
     auto i = a.begin();
     auto ie = a.end();
-    node_t<T> *lhead = nullptr;
-    node_t<T> **llast = &lhead;
-    node_t<T> *lcur = nullptr;
-    node_t<U> *rhead = nullptr;
-    node_t<U> **rlast = &rhead;
-    node_t<U> *rcur = nullptr;
+    output_control_t<T> l;
+    output_control_t<T> r;
 
     for (;i != ie ; ++i) {
       auto v = *i;
-      lcur = new node_t<T> {1,nullptr,v.first};
-      *llast = lcur;
-      llast = &(lcur->next);
-      rcur = new node_t<U> {1,nullptr,v.second};
-      *rlast = rcur;
-      rlast = &(rcur->next);
+      l.put(v.first);
+      r.put(v.second);
     }
-    return make_pair(slist {lhead}, slist {rhead}); 
+    return make_pair(slist (l.head), slist (r.head)); 
   } 
 
 }; // Slist

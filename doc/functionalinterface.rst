@@ -31,12 +31,24 @@ singleton
 
 Returns a unique list of one element v.
 
+slist from initializer list
+---------------------------
+
+.. code-block:: c++
+
+  slist({1,2,3,4})
+
+Precondition: All the elements in the list must have the same type.
+
+
+
+
 slist_from_container
 --------------------
 
 .. code-block:: c++
 
-  slist_from_container<T> (C)
+  slist_from_container (C)
 
 Requires C be an STL container with a begin() method returning
 an input iterator and an end() method returning an end iterator.
@@ -137,6 +149,7 @@ Makes a copy of the list. Always unique.
 make_unique
 -----------
 
+TODO.
 Returns the list if it is unique, or a copy otherwise.
 Result is always unique.
 

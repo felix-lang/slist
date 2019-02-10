@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <initializer_list>
 
 using namespace std;
 
@@ -62,8 +63,12 @@ int main() {
   vec.push_back(12);
   vec.push_back(13);
   vec.push_back(14);
-  auto lfv = slist_from_container<int>(vec);
+  auto lfv = slist_from_container(vec);
   cout << "List from Vector " << str (int_to_string, lfv) << endl;
+
+  auto linit = slist({1,3,5,7});
+  cout << "List from initialiser list " << str (int_to_string, linit) << endl;
+
   auto lfi = slist_from_iterators<int>(vec.begin(), vec.end());
   cout << "List from iterators" << str (int_to_string, lfi) << endl;
 
