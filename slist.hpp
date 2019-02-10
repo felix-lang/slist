@@ -466,7 +466,11 @@ cout << "splice to last" << endl;
 
   template<class U, class T, class F>
   slist<U> map(slist<T> const &x, F f) { return x.slist<T>::template map<U>(f); }
+ 
+  template<class T, class F>
+  slist<T> filter(slist<T> const &x, F f) { return x.filter(f); }
   
+ 
 
 }; // Slist
 

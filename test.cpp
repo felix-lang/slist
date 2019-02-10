@@ -67,6 +67,10 @@ int main() {
   auto filtered = lfi.filter ([] (int x) { return x % 2 == 0; });
   cout << "filtered " << str (int_to_string, filtered) << endl;
 
+  auto filtered2= filter (lfi,[] (int x) { return x % 2 == 0; });
+  cout << "filtered " << str (int_to_string, filtered2) << endl;
+
+
   auto mapped = lfi.map<double> ([] (int x) { return double(x) + 0.1; });
   cout << "mapped " << str (double_to_string, mapped) << endl;
 
