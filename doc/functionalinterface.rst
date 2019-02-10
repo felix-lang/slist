@@ -146,11 +146,10 @@ map
 
 .. code-block:: c++
 
-  map (f,x)
+  map<U> (f,x)
 
-TODO
-Returns a list with elements the result of applying
-f to each element of x. Always unique.
+Returns a list with elements of type U, the result of applying
+f to each element of x. Always unique. Cost N allocations.
 
 filter
 ------

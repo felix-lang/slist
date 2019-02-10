@@ -6,6 +6,7 @@
 using namespace std;
 
 string int_to_string(int x) { return to_string(x); }
+string double_to_string(double x) { return to_string(x); }
 
 using namespace Slist;
 
@@ -63,5 +64,15 @@ int main() {
   auto lfi = slist_from_iterators<int>(vec.begin(), vec.end());
   cout << "List from iterators" << str (int_to_string, lfi) << endl;
 
+  auto filtered = lfi.filter ([] (int x) { return x % 2 == 0; });
+  cout << "filtered " << str (int_to_string, filtered) << endl;
 
+  auto mapped = lfi.map<double> ([] (int x) { return double(x) + 0.1; });
+  cout << "mapped " << str (double_to_string, mapped) << endl;
+
+  auto mapped2 = map<double>(lfi,[] (int x) { return double(x) + 0.1; });
+  cout << "mapped " << str (double_to_string, mapped2) << endl;
+
+
+  
 }

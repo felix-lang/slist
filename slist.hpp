@@ -37,6 +37,9 @@ namespace Slist {
     template<class U, class I>
     friend slist<U> slist_from_iterators(I const &begin, I const &end);
 
+    template<class U>
+    friend class slist;
+
     node_t<T> *p;
 
     void decref() {
@@ -189,36 +192,121 @@ cout << "splice to last" << endl;
 
     slist tail () const { return p->next; }
 
-    template<class U>
-    class slist_iterator;
+    // TODO: if the list is unique and the map
+    // is an operator T->T the data can just be updated in place
+    template<class U, class F>
+    slist<U> map(F f) const {
+      node_t<U> *head = nullptr;
+      node_t<U> **last = &head;
+      node_t<U> *cur = nullptr;
+      for (auto v : *this) {
+        cur = new node_t<U> {1,nullptr,f(v)};
+        *last = cur;
+        last = &(cur->next);
+      }
+      return slist<U> {head}; 
+    }
 
-    friend slist_iterator<T>;
+
+    // TODO: provide unique version
+    // if the list is unique, filter can just chain together
+    // the nodes of the selected elements.
+    template<class F>
+    slist filter(F f) const {
+      node_t<T> *head = nullptr;
+      node_t<T> **last = &head;
+      node_t<T> *cur = nullptr;
+      for (auto v : *this) {
+        if (f (v)) {
+          cur = new node_t<T> {1,nullptr,v};
+          *last = cur;
+          last = &(cur->next);
+        }
+      }
+      return slist<T> {head}; 
+    }
+
+
 
     // **********************************************************
-    // iterator
+    // iterators
+    //
+    // We provide two types of iterator.
+    // 
+    // Input iterator is slower, but consumes the list if it is unique.
+    // It requires and increment and subsequent decrement of the current
+    // node ref count as it scans. However, there is no increment of the
+    // first node if is acquired from an rvalue list, so when it advances
+    // past the first node, that node is deleted if node has a ref count of 1.
+    //
+    // Forward iterator is faster because it uses a weak pointer for
+    // scanning which does not touch the reference count. The list is held
+    // intact during the whole scan by incrementing the count of the
+    // head node.  Although much faster, the whole list is alway retained
+    // until the scan is complete.
+    //
+    // The faster forward iterator is the default, because it has better
+    // performance and no storage overhead in the usual case where
+    // the list is already not unique, that is, it is either an lvalue,
+    // or an rvalue refering to a list which has other references to it
+    // anyhow.
+    
+ 
     template<class U>
-    class slist_iterator  {
+    class slist_input_iterator;
+    friend slist_input_iterator<T>;
+
+    template<class U>
+    class slist_input_iterator  {
       slist<U> s;
     public:
-      slist_iterator (slist<U> const& x) : s(x) {}
+      slist_input_iterator (slist<U> const& x) : s(x) {}
  
       // pre-incr (set to tail, return prev)
-      slist_iterator &operator ++ () { s.p = s.p-> next; return *this; }
+      slist_input_iterator &operator ++ () { s.p = s.p-> next; return *this; }
       // post-incr (set to tail, return value)
-      slist_iterator operator ++ (int) { auto cur = *this; s.p = s.p-> next; return cur; }
+      slist_input_iterator operator ++ (int) { auto cur = *this; s.p = s.p-> next; return cur; }
       // deref (head)
       U operator *() const { return s.p->data; }
       // identity (not value equality)
-      bool operator == (slist_iterator<T> const &y) const { return s.p == y.s.p; }
+      bool operator == (slist_input_iterator<T> const &y) const { return s.p == y.s.p; }
       // identity (not value equality)
-      bool operator != (slist_iterator<T> const &y) const { return s.p != y.s.p; }
+      bool operator != (slist_input_iterator<T> const &y) const { return s.p != y.s.p; }
     };
 
-    // start iterator
-    slist_iterator<T> begin() const { return slist_iterator<T> {*this} ; }
-    // end iterator
-    slist_iterator <T> end() const { return slist<T>(); }
+    template<class U>
+    class slist_forward_iterator;
+    friend slist_forward_iterator<T>;
 
+    template<class U>
+    class slist_forward_iterator  {
+      slist<U> s; // holds list intact during scan
+      node_t<U> *p; // weak pointer to current node
+    public:
+      slist_forward_iterator (slist<U> const& x) : s(x), p(x.p) {}
+ 
+      // pre-incr (set to tail, return prev)
+      slist_forward_iterator &operator ++ () { p = p-> next; return *this; }
+      // post-incr (set to tail, return value)
+      slist_forward_iterator operator ++ (int) { auto cur = *this; p = p-> next; return cur; }
+      // deref (head)
+      U operator *() const { return p->data; }
+      // identity (not value equality)
+      bool operator == (slist_forward_iterator<T> const &y) const { return p == y.p; }
+      // identity (not value equality)
+      bool operator != (slist_forward_iterator<T> const &y) const { return p != y.p; }
+    };
+
+    // The default iterator is the faster forward iterator
+    // start iterator
+    slist_forward_iterator<T> begin() const { return slist_forward_iterator<T> {*this} ; }
+    // end iterator
+    slist_forward_iterator <T> end() const { return slist<T>(); }
+
+    // start iterator
+    slist_input_iterator<T> begin_input() const { return slist_input_iterator<T> {*this} ; }
+    // end iterator
+    slist_input_iterator <T> end_input() const { return slist<T>(); }
 
   };  // slist
 
@@ -376,8 +464,9 @@ cout << "splice to last" << endl;
   slist<T> operator + (slist<T> const &a, slist<T> const &b) 
     { return Slist::join(a,b); }
 
-
-
+  template<class U, class T, class F>
+  slist<U> map(slist<T> const &x, F f) { return x.slist<T>::template map<U>(f); }
+  
 
 }; // Slist
 
