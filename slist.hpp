@@ -7,7 +7,8 @@
 #include <iostream>
 using namespace std;
 
-class Slist {
+namespace Slist {
+
   template<class T>
   struct node_t {
      ::std::size_t refcnt;
@@ -15,10 +16,27 @@ class Slist {
      T data;
   };
 
-public:
   template<class T>
   class slist {
-    friend class Slist;
+
+    template<class U>
+    friend slist<U> operator + (U,slist<U> const&);
+
+    template<class U>
+    friend slist<U> rev(slist<U> &&x);
+
+    template<class U>
+    friend slist<U> join (slist<U> const &a, slist<U> const &b);
+
+    template<class U>
+    friend slist<U> copy(slist<U> const &x);
+
+    template<class U, class C>
+    friend slist<U> slist_from_container(C c);
+
+    template<class U, class I>
+    friend slist<U> slist_from_iterators(I const &begin, I const &end);
+
     node_t<T> *p;
 
     void decref() {
@@ -211,43 +229,44 @@ cout << "splice to last" << endl;
   // **********************************************************
 
   template<class T>
-  static size_t size(slist<T> const &x) { return x.size(); }
+  size_t size(slist<T> const &x) { return x.size(); }
 
   // **********************************************************
   // cons
   template<class T>
-  static slist<T> cons (T head, slist<T> const &tail) { return tail.cons(head); }
+  slist<T> cons (T head, slist<T> const &tail) { return tail.cons(head); }
 
   template<class T>
-  static slist<T> cons (T head, slist<T> &&tail) { return ::std::move(tail).cons(head); }
+  slist<T> cons (T head, slist<T> &&tail) { return ::std::move(tail).cons(head); }
+
 
   // **********************************************************
   // head
   // precondition: x not empty
   template<class T>
-  static T head (slist<T> const &x) { return x.head(); }
+  T head (slist<T> const &x) { return x.head(); }
 
   // **********************************************************
   // tail
   // precondition: x not empty
   template<class T>
-  static slist<T> tail (slist<T> const &x) { return x.tail(); }
+  slist<T> tail (slist<T> const &x) { return x.tail(); }
 
   // **********************************************************
   // uniqueness test
   template<class T>
-  static bool uniq (slist<T> const &x) { return x.uniq(); }
+  bool uniq (slist<T> const &x) { return x.uniq(); }
 
   // **********************************************************
   // empty test
   template<class T>
-  static bool empty (slist<T> const &x) { return x.empty(); }
+  bool empty (slist<T> const &x) { return x.empty(); }
 
 
   // **********************************************************
   // conversion to string
   template<class T, class F> 
-  static string str(F f, slist<T> const &x) {
+  string str(F f, slist<T> const &x) {
     if (x.empty()) return "()";
     auto h = head (x);
     auto t = tail (x);
@@ -262,7 +281,7 @@ cout << "splice to last" << endl;
   // **********************************************************
   // copying rev
   template<class T>
-  static slist<T> rev (slist<T> const &a) {
+  slist<T> rev (slist<T> const &a) {
     auto x = a;
     auto y = slist<T>();
     while(!x.empty()) {
@@ -274,7 +293,7 @@ cout << "splice to last" << endl;
 
   // maybe in place rev
   template<class T>
-  static slist<T> rev(slist<T> &&x) {
+  slist<T> rev(slist<T> &&x) {
     if(x.uniq()) {
       x.inplace_rev();
       return std::move(x);
@@ -283,7 +302,7 @@ cout << "splice to last" << endl;
   }
 
   template<class T>
-  static slist<T> copy(slist<T> const &x) {
+  slist<T> copy(slist<T> const &x) {
     auto res = slist<T>(); // Empty
     auto pprev = &(res.p);  // place to put pointer to new node
     auto q = x.p;
@@ -301,7 +320,7 @@ cout << "splice to last" << endl;
   // unoptimised
   // FIXME! C++ can copy a list without reversing it
   template<class T>
-  static slist<T> join (slist<T> const &a, slist<T> const &b) {
+  slist<T> join (slist<T> const &a, slist<T> const &b) {
     if (a.empty()) return b;
     if (b.empty()) return a;
     slist<T> res;
@@ -313,4 +332,54 @@ cout << "splice to last" << endl;
     b.incref();
     return res;
   }
+  // **********************************************************
+  // Construct from STL container
+  // container value type must be T
+  template<class T, class C>
+  slist<T> slist_from_container(C c) {
+    node_t<T> *head = nullptr;
+    node_t<T> **last = &head;
+    node_t<T> *cur = nullptr;
+    for (auto v : c) {
+      cur = new node_t<T> {1,nullptr,v};
+      *last = cur;
+      last = &(cur->next);
+    }
+    return slist {head}; 
+  }
+
+  // **********************************************************
+  // Construct from STL begin/end iterators
+  // iterator value type must be T
+  template<class T, class I>
+  slist<T> slist_from_iterators(I const &begin, I const &end) {
+    node_t<T> *head = nullptr;
+    node_t<T> **last = &head;
+    node_t<T> *cur = nullptr;
+    for (auto j  = begin; j != end; ++j) {
+      cur = new node_t<T> {1,nullptr,*j};
+      *last = cur;
+      last = &(cur->next);
+    }
+    return slist {head}; 
+  }
+
+  template<class T>
+  slist<T> operator+(T head, slist<T> const &tail) 
+    { return tail.cons(head); }
+
+  template<class T>
+  slist<T> operator+(T head, slist<T> &&tail) 
+    { return ::std::move(tail).cons(head); }
+
+  template<class T>
+  slist<T> operator + (slist<T> const &a, slist<T> const &b) 
+    { return Slist::join(a,b); }
+
+
+
+
 }; // Slist
+
+
+

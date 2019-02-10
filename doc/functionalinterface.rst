@@ -27,32 +27,28 @@ singleton
 
 .. code-block:: c++
 
-  singleton(v)
+  slist(v)
 
-TODO. Returns a unique list of one element v.
+Returns a unique list of one element v.
 
 slist_from_container
 --------------------
 
 .. code-block:: c++
 
-  slist_from_container (C)
-
-TODO.
+  slist_from_container<T> (C)
 
 Requires C be an STL container with a begin() method returning
 an input iterator and an end() method returning an end iterator.
 Returns a list of all the elements in the container in the sequence
 found from the iterator.
 
-slist_from_iterator_range
--------------------------
+slist_from_iterators
+--------------------
 
 .. code-block:: c++
 
-  slist_from_iterator (begin,end)
-
-TODO.
+  slist_from_iterators<T> (begin,end)
 
 Requires begin, end be valid iterators for a sequence.
 Returns all the values in the range of the begin iterator
