@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <utility>
 #include <initializer_list>
+#include <cassert>
 
 // for debugging only
 #include <iostream>
@@ -20,15 +21,28 @@ namespace Slist {
 
   template<class U>
   struct output_control_t {
-    node_t<U> *head;
     node_t<U> **last;
     node_t<U> *cur;
-    output_control_t() { head = nullptr; last = &head; cur = nullptr; }
+    output_control_t(node_t<U> **phead) { 
+      last = phead; 
+      cur = nullptr; 
+      assert (*phead==nullptr); 
+    }
     void put(U const &v) {
       cur = new node_t<U> {1,nullptr,v};
       *last = cur;
       last = &(cur->next);
     }
+    output_control_t& operator++() {return *this; }
+    output_control_t& operator++(int) {return *this; }
+
+    template<class V>
+    struct output_proxy_t { 
+      output_control_t *p;
+      output_proxy_t(output_control_t<V> *q) : p(q) {}
+      void operator=(V const &v) { p->put(v); }
+    };
+    output_proxy_t<U> operator*() { return this; } 
   };
 
 
@@ -93,12 +107,21 @@ namespace Slist {
     }
     node_t<T> *last() const {
       auto p1 = p;
-      node_t<T> *p2 = nullptr;;
+      node_t<T> *p2 = nullptr;
       while(p1) {
         p2 = p1;
         p1 = p1 -> next;
       }
       return p2;
+    }
+
+    // a pointer to the slot containing the next pointer
+    // of the last node, or, if there is no last node,
+    // the list handle pointer. The pointed at slot
+    // should always be NULL! The precondition for this
+    // pointer to be safely used is that the list is unique!
+    node_t<T> **plast_next() {
+      return p?&(last()->next):&p;
     }
 
     // splice two lists together
@@ -136,10 +159,9 @@ cout << "splice to last" << endl;
     // one element list
     slist (T v) : p(new node_t<T> {1,nullptr,v}) {}
 
-    slist (std::initializer_list<T> const &c) {
-      output_control_t<T> o;
+    slist (std::initializer_list<T> const &c) : p(nullptr) {
+      output_control_t<T> o(&p);
       for (auto v : c) o.put(v);
-      p =o.head;
     }
 
     // cons constructor
@@ -217,17 +239,18 @@ cout << "splice to last" << endl;
       return r;
     }
 
-    T head() const { return p->data; }
+    T head() const { assert(p); return p->data; }
 
-    slist tail () const { return p->next; }
+    slist tail () const { assert(p); return p->next; }
 
     // TODO: if the list is unique and the map
     // is an operator T->T the data can just be updated in place
     template<class U, class F>
     slist<U> map(F f) const {
-      output_control_t<U> o;
+      slist<U> s;
+      output_control_t<U> o(&s.p);
       for (auto v : *this) o.put(f(v));
-      return slist<U> {o.head}; 
+      return s;
     }
 
 
@@ -236,10 +259,11 @@ cout << "splice to last" << endl;
     // the nodes of the selected elements.
     template<class F>
     slist filter(F f) const {
-      output_control_t<T> o;
+      slist<T> s;
+      output_control_t<T> o(&s.p);
       for (auto v : *this)
         if (f (v)) o.put(v);
-      return slist<T> {o.head}; 
+      return s;
     }
 
 
@@ -324,6 +348,15 @@ cout << "splice to last" << endl;
     // end iterator
     slist_input_iterator <T> end_input() const { return slist<T>(); }
 
+    output_control_t<T> get_output_iterator() {
+      // ensure the list is uniq
+      if(!uniq()) { decref(); p = nullptr; }
+      // pointer to slot containing node pointer
+      node_t<T> **q = plast_next();
+      assert (*q == nullptr);
+      return output_control_t(q);
+    }
+
   };  // slist
 
 
@@ -407,9 +440,10 @@ cout << "splice to last" << endl;
 
   template<class T>
   slist<T> copy(slist<T> const &x) {
-    output_control_t<T> o;
+    slist<T> s;
+    output_control_t<T> o(&s.p);
     for (auto v: x) o.put(v);
-    return slist (o.head);
+    return s;
   }
 
   // **********************************************************
@@ -435,9 +469,10 @@ cout << "splice to last" << endl;
   template<class C>
   auto slist_from_container(C const &c) -> slist<typename C::value_type> {
     using T = typename C::value_type;
-    output_control_t<T> o;
+    slist<T> s;
+    output_control_t<T> o(&s.p);
     for (auto v : c) o.put(v);
-    return slist (o.head); 
+    return s;
   }
 
   // **********************************************************
@@ -445,9 +480,10 @@ cout << "splice to last" << endl;
   // iterator value type must be T
   template<class T, class I>
   slist<T> slist_from_iterators(I const &begin, I const &end) {
-    output_control_t<T> o;
+    slist<T> s;
+    output_control_t<T> o(&s.p);
     for (auto j  = begin; j != end; ++j) o.put(*j);
-    return slist (o.head); 
+    return s;
   }
 
   template<class T>
@@ -475,11 +511,12 @@ cout << "splice to last" << endl;
     auto ie = a.end();
     auto j = b.begin();
     auto je = b.end();
-    output_control_t<P> o;
+    slist<P> s;
+    output_control_t<P> o(&s.p);
     for (;i != ie && j != je; ++i,++j) {
       o.put(make_pair(*i,*j));
     }
-    return slist (o.head); 
+    return s;
   } 
 
   template<class T, class U>
@@ -487,15 +524,17 @@ cout << "splice to last" << endl;
     using P = std::pair<T,U>;
     auto i = a.begin();
     auto ie = a.end();
-    output_control_t<T> l;
-    output_control_t<T> r;
+    slist<T> ls;
+    slist<U> rs;
+    output_control_t<T> l(&ls.p);
+    output_control_t<U> r(&rs.p);
 
     for (;i != ie ; ++i) {
       auto v = *i;
       l.put(v.first);
       r.put(v.second);
     }
-    return make_pair(slist (l.head), slist (r.head)); 
+    return make_pair(ls,rs);
   } 
 
 }; // Slist

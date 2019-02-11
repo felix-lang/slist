@@ -91,6 +91,14 @@ int main() {
   cout << "unzipped first " << str (int_to_string, uz.first) << endl;
   cout << "unzipped second " << str (int_to_string, uz.second) << endl;
 
+  slist<int> xx;
+  auto px = xx.get_output_iterator();
+  for (int i = 14; i < 20; ++i) *px++ = i;
+  cout << "From output iterator " << str (int_to_string, xx) << endl;
+  px = xx.get_output_iterator();
+  for (int i = 14; i < 20; ++i) *px++ = i;
+  cout << "From output iterator(should append) " << str (int_to_string, xx) << endl;
+
 
   
 }
