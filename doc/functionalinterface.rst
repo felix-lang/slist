@@ -261,50 +261,25 @@ end_input
 
 Returns terminal input list iterator.
 
-
-
-
-Iterator Interface
-==================
-
-operator ==
------------
+get_output_iterator
+-------------------
 
 .. code-block:: c++
 
-  p == q
+ x.get_output_iterator()
 
-operator !=
------------
+Fetches an output iterator for the list x.
+The list should be unique. If not, the handle x 
+detaches its current list and is set to empty,
+making it unique. A prefix of the previous list may
+be lost because the head node's refcount is decremented.
+Note the whole list cannot be lost because it would have to be
+unique for that to happen, there must be at least one other reference
+to some non-empty suffix of the list.
 
-.. code-block:: c++
-
-  x == y
-
-operator ++
------------
-
-.. code-block:: c++
-
-   ++p
- 
-Preincrement iterator. Precondition not at end.
-
-operator ++(int)
-----------------
-
-.. code-block:: c++
-
-   p++
- 
-Postincrement iterator. Precondition not at end.
-
-operator *
-----------
-
-.. code-block:: c++
-
-  *p
-
-Fetch value.  Precondition not at end.
+Writes to the output iterator append elements to the end of the list.
+The pre-increment and post-increment operators have no effect.
+The dereference operator returns a proxy which accepts an assignment
+from the list value type, which causes a new node to be appended
+to the end of the list and the output iterator then advances.
 
