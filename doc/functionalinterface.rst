@@ -64,7 +64,9 @@ slist_from_iterators
 
 Requires begin, end be valid iterators for a sequence.
 Returns all the values in the range of the begin iterator
-up to but excluding the end iterator.
+up to but excluding the end iterator. T::value_type must specify
+the container value type.
+
 
 size
 ----
@@ -82,6 +84,7 @@ uniq
 .. code-block:: c++
 
  uniq(x)
+ x.uniq()
 
 Returns true if x s empty or is the only reference to the underlying list
 and all tails thereof. Implies the reference counts of all nodes
@@ -93,6 +96,7 @@ cons
 .. code-block:: c++
 
   cons (h,t)
+  t.cons(h)
 
 returns list t with value h added to front. Unique if and only if t is unique.
 
@@ -102,7 +106,7 @@ head
 .. code-block:: c++
 
   head (x)
-
+  x.head()
 
 Precondition non-empty list. Returns first value on the list.
 
@@ -112,6 +116,7 @@ tail
 .. code-block:: c++
 
   tail (x)
+  x.tail()
 
 Precondition non-empty list. Returns list with first value removed.
 Unique if x is unique, may be unique even if x is not.
@@ -160,6 +165,7 @@ map
 .. code-block:: c++
 
   map<U> (f,x)
+  x.map(f)
 
 Returns a list with elements of type U, the result of applying
 f to each element of x. Always unique. Cost N allocations.
@@ -170,6 +176,7 @@ filter
 .. code-block:: c++
 
   filter (f,x)
+  x.filter(f)
 
 Returns a sublist of elements of x satifying predicate f(v).
 Always unique.
@@ -214,21 +221,46 @@ begin
 
 .. code-block:: c++
 
- begin(x)
  x.begin()
 
-Returns list iterator starting at head of list.
-
+Returns forward list iterator starting at head of list.
+This iterator uses a strong pointer to the head of the list
+but scans the list using a weak pointer, avoiding the overhead
+of managing the reference count at the expense of retaining
+the whole list during the scan.
  
 end
 ---
 
 .. code-block:: c++
 
- end(x)
  x.end()
 
-Returns terminal list iterator.
+Returns terminal fast list iterator.
+
+begin_input
+-----------
+
+.. code-block:: c++
+
+ x.begin_input()
+
+Returns input list iterator starting at the head of the list.
+This iterator uses a strong pointer to scan the list.
+Reference counts are adjusted during the scan. If the list
+is unique, then a scan will consume the list, freeing memory
+during the scan.
+
+ 
+end_input
+---------
+
+.. code-block:: c++
+
+ x.end_input()
+
+Returns terminal input list iterator.
+
 
 
 
