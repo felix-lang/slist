@@ -99,6 +99,7 @@ int main() {
   for (int i = 14; i < 20; ++i) *px++ = i;
   cout << "From output iterator(should append) " << str (int_to_string, xx) << endl;
 
-
+  auto sum = fold_left ([](int x, int y) { return x + y;},0,xx);
+  cout << "Sum of last = " << sum << endl;
   
 }

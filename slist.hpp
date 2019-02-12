@@ -5,6 +5,9 @@
 #include <utility>
 #include <initializer_list>
 #include <cassert>
+#include <numeric>
+#include <algorithm>
+#include <iterator>
 
 // for debugging only
 #include <iostream>
@@ -13,41 +16,13 @@ using namespace std;
 namespace Slist {
 
   template<class T>
-  struct node_t {
-     ::std::size_t refcnt;
-     node_t *next;
-     T data;
-  };
-
-  template<class U>
-  struct output_control_t {
-    node_t<U> **last;
-    node_t<U> *cur;
-    output_control_t(node_t<U> **phead) { 
-      last = phead; 
-      cur = nullptr; 
-      assert (*phead==nullptr); 
-    }
-    void put(U const &v) {
-      cur = new node_t<U> {1,nullptr,v};
-      *last = cur;
-      last = &(cur->next);
-    }
-    output_control_t& operator++() {return *this; }
-    output_control_t& operator++(int) {return *this; }
-
-    template<class V>
-    struct output_proxy_t { 
-      output_control_t *p;
-      output_proxy_t(output_control_t<V> *q) : p(q) {}
-      void operator=(V const &v) { p->put(v); }
-    };
-    output_proxy_t<U> operator*() { return this; } 
-  };
-
-
-  template<class T>
   class slist {
+
+    struct slist_node_t {
+       ::std::size_t refcnt;
+       slist_node_t *next;
+       T data;
+    };
 
     template<class U>
     friend slist<U> operator + (U,slist<U> const&);
@@ -77,7 +52,7 @@ namespace Slist {
     template<class U>
     friend class slist;
 
-    node_t<T> *p;
+    slist_node_t *p;
 
     void decref() {
       auto top = p;
@@ -91,10 +66,10 @@ namespace Slist {
       if(p)p->refcnt++;
     }
 
-    slist (node_t<T> *q) : p(q) { incref(); }
+    slist (slist_node_t *q) : p(q) { incref(); }
 
     void inplace_rev() {
-      node_t<T> *nutail = nullptr; 
+      slist_node_t *nutail = nullptr; 
       auto cur = p;
       while(cur)
       {
@@ -105,9 +80,9 @@ namespace Slist {
       }
       p = nutail;               
     }
-    node_t<T> *last() const {
+    slist_node_t *last() const {
       auto p1 = p;
-      node_t<T> *p2 = nullptr;
+      slist_node_t *p2 = nullptr;
       while(p1) {
         p2 = p1;
         p1 = p1 -> next;
@@ -120,7 +95,7 @@ namespace Slist {
     // the list handle pointer. The pointed at slot
     // should always be NULL! The precondition for this
     // pointer to be safely used is that the list is unique!
-    node_t<T> **plast_next() {
+    slist_node_t **plast_next() {
       return p?&(last()->next):&p;
     }
 
@@ -130,7 +105,7 @@ namespace Slist {
     // because if it sourced from an rvalue it is invariant,
     // but should be incremented if sourced from an lvalue
     // the caller must do the incref!
-    void splice (node_t<T> *y) {
+    void splice (slist_node_t *y) {
       if (!p) { // this list is empty 
         if(y) { // that list is non-empty
           p = y;  // set this list to that list
@@ -157,20 +132,20 @@ cout << "splice to last" << endl;
     slist() : p (nullptr) {}
 
     // one element list
-    slist (T v) : p(new node_t<T> {1,nullptr,v}) {}
+    slist (T v) : p(new slist_node_t {1,nullptr,v}) {}
 
     slist (std::initializer_list<T> const &c) : p(nullptr) {
-      output_control_t<T> o(&p);
+      output_control_t o(&p);
       for (auto v : c) o.put(v);
     }
 
     // cons constructor
-    slist (T head, slist const &tail) : p(new node_t<T> {1,tail.p,head}) { 
+    slist (T head, slist const &tail) : p(new slist_node_t {1,tail.p,head}) { 
       tail.incref(); 
     }
 
     // cons constructor (rvalue tail)
-    slist (T head, slist &&tail) : p(new node_t<T> {1,tail.p,head}) { 
+    slist (T head, slist &&tail) : p(new slist_node_t {1,tail.p,head}) { 
       tail.p=nullptr;
     }
 
@@ -248,7 +223,7 @@ cout << "splice to last" << endl;
     template<class U, class F>
     slist<U> map(F f) const {
       slist<U> s;
-      output_control_t<U> o(&s.p);
+      typename slist<U>::output_control_t o(&s.p);
       for (auto v : *this) o.put(f(v));
       return s;
     }
@@ -260,13 +235,16 @@ cout << "splice to last" << endl;
     template<class F>
     slist filter(F f) const {
       slist<T> s;
-      output_control_t<T> o(&s.p);
+      typename slist::output_control_t o(&s.p);
       for (auto v : *this)
         if (f (v)) o.put(v);
       return s;
     }
 
-
+    template<class U, class F>
+    U fold_left(U init, F f) const {
+      return std::accumulate(begin(), end(), init, f);
+    }
 
     // **********************************************************
     // iterators
@@ -290,69 +268,109 @@ cout << "splice to last" << endl;
     // the list is already not unique, that is, it is either an lvalue,
     // or an rvalue refering to a list which has other references to it
     // anyhow.
-    
- 
-    template<class U>
-    class slist_input_iterator;
-    friend slist_input_iterator<T>;
 
-    template<class U>
+    struct output_control_t {
+      using difference_type = void;
+      using value_type = T;
+      using pointer = T*;
+      using reference = T&;
+      using iterator_category = std::output_iterator_tag; 
+
+      slist_node_t **last;
+      slist_node_t *cur;
+      output_control_t(slist_node_t **phead) { 
+        last = phead; 
+        cur = nullptr; 
+        assert (*phead==nullptr); 
+      }
+      void put(T const &v) {
+        cur = new slist_node_t {1,nullptr,v};
+        *last = cur;
+        last = &(cur->next);
+      }
+      output_control_t& operator++() {return *this; }
+      output_control_t& operator++(int) {return *this; }
+
+      template<class V>
+      struct output_proxy_t { 
+        output_control_t *p;
+        output_proxy_t(typename slist<V>::output_control_t *q) : p(q) {}
+        void operator=(V const &v) { p->put(v); }
+      };
+      output_proxy_t<T> operator*() { return this; } 
+    };
+
+ 
+ 
+    class slist_input_iterator;
+    friend slist_input_iterator;
+
     class slist_input_iterator  {
-      slist<U> s;
+      slist s;
     public:
-      slist_input_iterator (slist<U> const& x) : s(x) {}
+      using difference_type = void;
+      using value_type = T;
+      using pointer = T*;
+      using reference = T&;
+      using iterator_category = std::forward_iterator_tag; 
+
+      slist_input_iterator (slist<T> const& x) : s(x) {}
  
       // pre-incr (set to tail, return prev)
       slist_input_iterator &operator ++ () { s.p = s.p-> next; return *this; }
       // post-incr (set to tail, return value)
       slist_input_iterator operator ++ (int) { auto cur = *this; s.p = s.p-> next; return cur; }
       // deref (head)
-      U operator *() const { return s.p->data; }
+      T operator *() const { return s.p->data; }
       // identity (not value equality)
-      bool operator == (slist_input_iterator<T> const &y) const { return s.p == y.s.p; }
+      bool operator == (slist_input_iterator const &y) const { return s.p == y.s.p; }
       // identity (not value equality)
-      bool operator != (slist_input_iterator<T> const &y) const { return s.p != y.s.p; }
+      bool operator != (slist_input_iterator const &y) const { return s.p != y.s.p; }
     };
 
-    template<class U>
     class slist_forward_iterator;
-    friend slist_forward_iterator<T>;
+    friend slist_forward_iterator;
 
-    template<class U>
     class slist_forward_iterator  {
-      slist<U> s; // holds list intact during scan
-      node_t<U> *p; // weak pointer to current node
+      slist s; // holds list intact during scan
+      slist_node_t *p; // weak pointer to current node
     public:
-      slist_forward_iterator (slist<U> const& x) : s(x), p(x.p) {}
+      using difference_type = void;
+      using value_type = T;
+      using pointer = T*;
+      using reference = T&;
+      using iterator_category = std::forward_iterator_tag; 
+
+      slist_forward_iterator (slist<T> const& x) : s(x), p(x.p) {}
  
       // pre-incr (set to tail, return prev)
       slist_forward_iterator &operator ++ () { p = p-> next; return *this; }
       // post-incr (set to tail, return value)
       slist_forward_iterator operator ++ (int) { auto cur = *this; p = p-> next; return cur; }
       // deref (head)
-      U operator *() const { return p->data; }
+      T operator *() const { return p->data; }
       // identity (not value equality)
-      bool operator == (slist_forward_iterator<T> const &y) const { return p == y.p; }
+      bool operator == (slist_forward_iterator const &y) const { return p == y.p; }
       // identity (not value equality)
-      bool operator != (slist_forward_iterator<T> const &y) const { return p != y.p; }
+      bool operator != (slist_forward_iterator const &y) const { return p != y.p; }
     };
 
     // The default iterator is the faster forward iterator
     // start iterator
-    slist_forward_iterator<T> begin() const { return slist_forward_iterator<T> {*this} ; }
+    slist_forward_iterator begin() const { return slist_forward_iterator {*this} ; }
     // end iterator
-    slist_forward_iterator <T> end() const { return slist<T>(); }
+    slist_forward_iterator end() const { return slist<T>(); }
 
     // start iterator
-    slist_input_iterator<T> begin_input() const { return slist_input_iterator<T> {*this} ; }
+    slist_input_iterator begin_input() const { return slist_input_iterator {*this} ; }
     // end iterator
-    slist_input_iterator <T> end_input() const { return slist<T>(); }
+    slist_input_iterator end_input() const { return slist(); }
 
-    output_control_t<T> get_output_iterator() {
+    slist::output_control_t get_output_iterator() {
       // ensure the list is uniq
       if(!uniq()) { decref(); p = nullptr; }
       // pointer to slot containing node pointer
-      node_t<T> **q = plast_next();
+      slist_node_t **q = plast_next();
       assert (*q == nullptr);
       return output_control_t(q);
     }
@@ -441,7 +459,7 @@ cout << "splice to last" << endl;
   template<class T>
   slist<T> copy(slist<T> const &x) {
     slist<T> s;
-    output_control_t<T> o(&s.p);
+    typename slist<T>::output_control_t o(&s.p);
     for (auto v: x) o.put(v);
     return s;
   }
@@ -470,7 +488,7 @@ cout << "splice to last" << endl;
   auto slist_from_container(C const &c) -> slist<typename C::value_type> {
     using T = typename C::value_type;
     slist<T> s;
-    output_control_t<T> o(&s.p);
+    typename slist<T>::output_control_t o(&s.p);
     for (auto v : c) o.put(v);
     return s;
   }
@@ -481,7 +499,7 @@ cout << "splice to last" << endl;
   template<class T, class I>
   slist<T> slist_from_iterators(I const &begin, I const &end) {
     slist<T> s;
-    output_control_t<T> o(&s.p);
+    typename slist<T>::output_control_t o(&s.p);
     for (auto j  = begin; j != end; ++j) o.put(*j);
     return s;
   }
@@ -512,7 +530,7 @@ cout << "splice to last" << endl;
     auto j = b.begin();
     auto je = b.end();
     slist<P> s;
-    output_control_t<P> o(&s.p);
+    typename slist<P>::output_control_t o(&s.p);
     for (;i != ie && j != je; ++i,++j) {
       o.put(make_pair(*i,*j));
     }
@@ -526,8 +544,8 @@ cout << "splice to last" << endl;
     auto ie = a.end();
     slist<T> ls;
     slist<U> rs;
-    output_control_t<T> l(&ls.p);
-    output_control_t<U> r(&rs.p);
+    typename slist<T>::output_control_t l(&ls.p);
+    typename slist<U>::output_control_t r(&rs.p);
 
     for (;i != ie ; ++i) {
       auto v = *i;
@@ -537,7 +555,10 @@ cout << "splice to last" << endl;
     return make_pair(ls,rs);
   } 
 
+  template<class T, class U, class F>
+  U fold_left(F f, U init, slist<T> x) {
+    return x.fold_left(init, f);
+  }
+
 }; // Slist
-
-
 
