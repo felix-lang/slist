@@ -8,6 +8,7 @@
 #include <numeric>
 #include <algorithm>
 #include <iterator>
+#include <iostream>
 
 namespace Slist {
 
@@ -114,7 +115,35 @@ namespace Slist {
       return;
     }
      
-
+/*
+    // TODO: if the list is unique and the map
+    // is an operator T->T the data can just be updated in place
+    template<class U, class F>
+    slist<U> map(F f) const {
+      slist<U> s;
+      typename slist<U>::output_control_t o(&s.p);
+      for (auto v : *this) o.put(f(v));
+      return s;
+    }
+*/
+    template<class F>
+    slist<T> map(F && f, T const *, int) const {
+      std::cout << "f: T -> T" << std::endl;
+      slist<T> s;
+      typename slist<T>::output_control_t o(&s.p);
+      for (auto v : *this) o.put(f(v));
+      return s;
+ 
+    }
+    
+    template<class U, class F>
+    slist<U> map(F && f, U const *, ...) const {
+        std::cout << "f: T -> U" << std::endl;
+      slist<U> s;
+      typename slist<U>::output_control_t o(&s.p);
+      for (auto v : *this) o.put(f(v));
+      return s;
+    }
 
   public:
     // destructor
@@ -213,16 +242,11 @@ namespace Slist {
 
     slist tail () const { assert(p); return p->next; }
 
-    // TODO: if the list is unique and the map
-    // is an operator T->T the data can just be updated in place
-    template<class U, class F>
-    slist<U> map(F f) const {
-      slist<U> s;
-      typename slist<U>::output_control_t o(&s.p);
-      for (auto v : *this) o.put(f(v));
-      return s;
+    template<class F>
+    auto map(F && f) const -> slist<decltype(f(std::declval<T>()))> {
+        using U = decltype(f(std::declval<T>()));
+        return map(std::forward<F>(f), reinterpret_cast<U*>(0), 0);
     }
-
 
     // TODO: provide unique version
     // if the list is unique, filter can just chain together

@@ -79,11 +79,10 @@ int main() {
   cout << "filtered " << str (int_to_string, filtered2) << endl;
 
 
-  auto mapped = lfi.map<double> ([] (int x) { return double(x) + 0.1; });
+  auto mapped = lfi.map ([] (int x) { return double(x) + 0.1; });
   cout << "mapped " << str (double_to_string, mapped) << endl;
-
-  auto mapped2 = map<double>(lfi,[] (int x) { return double(x) + 0.1; });
-  cout << "mapped " << str (double_to_string, mapped2) << endl;
+  //auto mapped2 = map/*<double>*/(lfi,[] (int x) { return double(x) + 0.1; });
+  //cout << "mapped " << str (double_to_string, mapped2) << endl;
 
   auto zipped = zip(lfv,filtered2);
   cout << "zipped " << str (intpair_to_string, zipped) << endl;
