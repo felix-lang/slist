@@ -9,10 +9,6 @@
 #include <algorithm>
 #include <iterator>
 
-// for debugging only
-#include <iostream>
-using namespace std;
-
 namespace Slist {
 
   template<class T>
@@ -113,7 +109,6 @@ namespace Slist {
         // else both lists empty, nothing to do
         return; 
       }
-cout << "splice to last" << endl;
       // this list is not empty
       if(y) last() -> next = y;
       return;
@@ -421,7 +416,7 @@ cout << "splice to last" << endl;
   // **********************************************************
   // conversion to string
   template<class T, class F> 
-  string str(F f, slist<T> const &x) {
+  std::string str(F f, slist<T> const &x) {
     if (x.empty()) return "()";
     auto h = head (x);
     auto t = tail (x);
@@ -532,13 +527,13 @@ cout << "splice to last" << endl;
     slist<P> s;
     typename slist<P>::output_control_t o(&s.p);
     for (;i != ie && j != je; ++i,++j) {
-      o.put(make_pair(*i,*j));
+      o.put(std::make_pair(*i,*j));
     }
     return s;
   } 
 
   template<class T, class U>
-  std::pair<slist<T>,slist<U>> unzip (slist<pair<T,U>> const &a) {
+  std::pair<slist<T>,slist<U>> unzip (slist<std::pair<T,U>> const &a) {
     using P = std::pair<T,U>;
     auto i = a.begin();
     auto ie = a.end();
@@ -552,7 +547,7 @@ cout << "splice to last" << endl;
       l.put(v.first);
       r.put(v.second);
     }
-    return make_pair(ls,rs);
+    return std::make_pair(ls,rs);
   } 
 
   template<class T, class U, class F>
