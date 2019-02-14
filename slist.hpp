@@ -45,7 +45,6 @@ namespace Slist {
     template<class U, class V>
     friend std::pair<slist<U>,slist<V>> unzip (slist<std::pair<U,V>> const &a);
 
-
     template<class U>
     friend class slist;
 
@@ -115,25 +114,20 @@ namespace Slist {
       return;
     }
      
-/*
-    // TODO: if the list is unique and the map
-    // is an operator T->T the data can just be updated in place
-    template<class U, class F>
-    slist<U> map(F f) const {
-      slist<U> s;
-      typename slist<U>::output_control_t o(&s.p);
-      for (auto v : *this) o.put(f(v));
-      return s;
-    }
-*/
     template<class F>
     slist<T> map(F && f, T const *, int) const {
-      std::cout << "f: T -> T" << std::endl;
-      slist<T> s;
-      typename slist<T>::output_control_t o(&s.p);
-      for (auto v : *this) o.put(f(v));
-      return s;
- 
+      auto u = uniq();
+      std::cout << "f: T -> T, uniq=" << u << std::endl;
+      if (u) {
+        for(auto q = p; q != nullptr; q=q->next) q->data = f(q->data);
+        return *this;
+      }
+      else {
+        slist<T> s;
+        typename slist<T>::output_control_t o(&s.p);
+        for (auto v : *this) o.put(f(v));
+        return s;
+      }
     }
     
     template<class U, class F>
@@ -385,13 +379,23 @@ namespace Slist {
     // end iterator
     slist_input_iterator end_input() const { return slist(); }
 
-    slist::output_control_t get_output_iterator() {
+    slist::output_control_t get_back_inserter() {
       // ensure the list is uniq
-      if(!uniq()) { decref(); p = nullptr; }
-      // pointer to slot containing node pointer
-      slist_node_t **q = plast_next();
-      assert (*q == nullptr);
-      return output_control_t(q);
+      if(uniq()) {
+        // pointer to slot containing node pointer
+        slist_node_t **q = plast_next();
+        assert (*q == nullptr);
+        return output_control_t(q);
+      }
+      else { // the list isn't unique, so copy it
+std::cout << " back inserter copying list " << std::endl;
+        auto newhead = new slist_node_t {1,nullptr,p->data};
+        output_control_t o(&newhead->next);
+        for(auto q=p->next; q; q=q->next) o.put(q->data);
+        decref();
+        p = newhead;
+        return o; 
+      }
     }
 
   };  // slist
@@ -535,8 +539,8 @@ namespace Slist {
   slist<T> operator + (slist<T> const &a, slist<T> const &b) 
     { return Slist::join(a,b); }
 
-  template<class U, class T, class F>
-  slist<U> map(slist<T> const &x, F f) { return x.slist<T>::template map<U>(f); }
+  template<class T, class F>
+  auto map(slist<T> const &x, F f)  { return x.template map(f); }
  
   template<class T, class F>
   slist<T> filter(slist<T> const &x, F f) { return x.filter(f); }

@@ -78,11 +78,13 @@ int main() {
   auto filtered2= filter (lfi,[] (int x) { return x % 2 == 0; });
   cout << "filtered " << str (int_to_string, filtered2) << endl;
 
+  auto mapped0 = lfi.map ([] (int x) { return x*x; });
+  cout << "mapped int->int " << str (int_to_string, mapped0) << endl;
 
   auto mapped = lfi.map ([] (int x) { return double(x) + 0.1; });
-  cout << "mapped " << str (double_to_string, mapped) << endl;
-  //auto mapped2 = map/*<double>*/(lfi,[] (int x) { return double(x) + 0.1; });
-  //cout << "mapped " << str (double_to_string, mapped2) << endl;
+  cout << "mapped int->double " << str (double_to_string, mapped) << endl;
+  auto mapped2 = map/*<double>*/(lfi,[] (int x) { return double(x) + 0.1; });
+  cout << "mapped " << str (double_to_string, mapped2) << endl;
 
   auto zipped = zip(lfv,filtered2);
   cout << "zipped " << str (intpair_to_string, zipped) << endl;
@@ -91,12 +93,20 @@ int main() {
   cout << "unzipped second " << str (int_to_string, uz.second) << endl;
 
   slist<int> xx;
-  auto px = xx.get_output_iterator();
+  auto px = xx.get_back_inserter();
   for (int i = 14; i < 20; ++i) *px++ = i;
   cout << "From output iterator " << str (int_to_string, xx) << endl;
-  px = xx.get_output_iterator();
+  px = xx.get_back_inserter();
   for (int i = 14; i < 20; ++i) *px++ = i;
   cout << "From output iterator(should append) " << str (int_to_string, xx) << endl;
+
+  auto cbi1 = slist({1,2,3});
+  auto cbi2 = cbi1;
+  px = cbi2.get_back_inserter();
+  for (int i = 14; i < 20; ++i) *px++ = i;
+  cout << "cbi1 " << str (int_to_string, cbi1) << endl;
+  cout << "cbi2 " << str (int_to_string, cbi2) << endl;
+  
 
   auto sum = fold_left ([](int x, int y) { return x + y;},0,xx);
   cout << "Sum of last = " << sum << endl;
