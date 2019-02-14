@@ -106,6 +106,11 @@ int main() {
   for (int i = 14; i < 20; ++i) *px++ = i;
   cout << "cbi1 " << str (int_to_string, cbi1) << endl;
   cout << "cbi2 " << str (int_to_string, cbi2) << endl;
+
+  auto pb = slist<int>();
+  pb.push_back(3).push_back(4).push_back(5).push_front(2).push_front(1);
+  cout << "push/back/front" << str (int_to_string, pb) << endl;
+
   
 
   auto sum = fold_left ([](int x, int y) { return x + y;},0,xx);

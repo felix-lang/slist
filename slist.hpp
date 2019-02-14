@@ -379,6 +379,9 @@ namespace Slist {
     // end iterator
     slist_input_iterator end_input() const { return slist(); }
 
+    // FIXME: TODO: We need a general make unique!
+    // For example, there is no need to copy the whole list,
+    // only from the first node that has refcount >1.
     slist::output_control_t get_back_inserter() {
       // ensure the list is uniq
       if(uniq()) {
@@ -396,6 +399,25 @@ std::cout << " back inserter copying list " << std::endl;
         p = newhead;
         return o; 
       }
+    }
+
+    // **********************************************************
+    // object modifiers
+    // **********************************************************
+
+    // **********************************************************
+    // push element onto front, equiv x = x . cons (v)
+    slist &push_front(T const &v) { 
+      p = new slist_node_t {1, p, v}; 
+      return *this; 
+    }
+
+    // **********************************************************
+    // push element onto end
+    // equiv x = x + v
+    slist &push_back(T const &v) {
+      *get_back_inserter() = v;
+      return *this;
     }
 
   };  // slist
