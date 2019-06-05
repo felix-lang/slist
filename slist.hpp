@@ -9,14 +9,27 @@
 #include <algorithm>
 #include <iterator>
 #include <iostream>
+#include <atomic>
 
 namespace Slist {
+
+// crude allocation checking
+#ifdef SLIST_DEBUG_ALLOCATIONS
+  std::atomic<long> nalloc = 0;
+  void inc_nalloc() { ++nalloc; }
+  void dec_nalloc() { --nalloc; }
+  long get_nalloc() { return nalloc.load(); }
+#else
+  void inc_nalloc() {}
+  void dec_nalloc() {}
+  long get_nalloc() {return 0;}
+#endif
 
   template<class T>
   class slist {
 
     struct slist_node_t {
-       ::std::size_t refcnt;
+       ::std::atomic<::std::size_t> refcnt;
        slist_node_t *next;
        T data;
     };
@@ -55,6 +68,7 @@ namespace Slist {
       while(top && --top->refcnt == 0) {
         auto tmp = top->next;
         delete top;
+        dec_nalloc();
         top = tmp;
       }
     }
@@ -150,20 +164,22 @@ namespace Slist {
     slist() : p (nullptr) {}
 
     // one element list
-    slist (T v) : p(new slist_node_t {1,nullptr,v}) {}
+    slist (T v) : p(new slist_node_t {1,nullptr,v}) { inc_nalloc(); }
 
     slist (std::initializer_list<T> const &c) : p(nullptr) {
       output_control_t o(&p);
       for (auto v : c) o.put(v);
     }
 
-    // cons constructor
+    // cons constructor (const ref tail)
     slist (T head, slist const &tail) : p(new slist_node_t {1,tail.p,head}) { 
+      inc_nalloc();
       tail.incref(); 
     }
 
     // cons constructor (rvalue tail)
     slist (T head, slist &&tail) : p(new slist_node_t {1,tail.p,head}) { 
+      inc_nalloc();
       tail.p=nullptr;
     }
 
@@ -199,7 +215,7 @@ namespace Slist {
     // empty list
     bool empty() const noexcept { return p == nullptr; }
 
-    // unique list: not empty list is considered uniq
+    // unique list: note empty list is considered uniq
     bool uniq() const noexcept { 
       for(auto q = p; q; q=q->next)
         if(q->refcnt>1) return false; 
@@ -207,21 +223,29 @@ namespace Slist {
     }
 
     // cons: return a new list with given head and this list as the tail
+    // const ref version
+    // calls const ref cons constructor
     slist cons (T head) const & {
       return slist (head, *this);
     }
 
+    // cons: return a new list with given head and this list as the tail
+    // rvalue version
+    // calls rvalue cons constructor
+    // nullifies this list (its a temporary!)
     slist cons (T head) && {
       return slist (head, ::std::move(*this));
     }
 
 
+    // number of elements in list
     size_t size() const noexcept {
       size_t n = 0; 
       for(auto q=p;q;q=q->next,++n); 
       return n; 
     }
 
+    // WRONG! Should include linearity stuff!
     slist rev() const {
       slist<T> r; // empty
       auto q = p;
@@ -232,8 +256,11 @@ namespace Slist {
       return r;
     }
 
+    // Get the head value, fails if list empty
     T head() const { assert(p); return p->data; }
 
+    // Get the tail value, fails if list empty
+    // NOTE: we could return empty list but this would mask error
     slist tail () const { assert(p); return p->next; }
 
     template<class F>
@@ -298,6 +325,7 @@ namespace Slist {
       }
       void put(T const &v) {
         cur = new slist_node_t {1,nullptr,v};
+        inc_nalloc();
         *last = cur;
         last = &(cur->next);
       }
@@ -393,6 +421,7 @@ namespace Slist {
       else { // the list isn't unique, so copy it
 std::cout << " back inserter copying list " << std::endl;
         auto newhead = new slist_node_t {1,nullptr,p->data};
+        inc_nalloc();
         output_control_t o(&newhead->next);
         for(auto q=p->next; q; q=q->next) o.put(q->data);
         decref();
@@ -409,6 +438,7 @@ std::cout << " back inserter copying list " << std::endl;
     // push element onto front, equiv x = x . cons (v)
     slist &push_front(T const &v) { 
       p = new slist_node_t {1, p, v}; 
+      inc_nalloc();
       return *this; 
     }
 

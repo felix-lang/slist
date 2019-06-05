@@ -261,16 +261,16 @@ end_input
 
 Returns terminal input list iterator.
 
-get_output_iterator
--------------------
+get_back_inserter
+-----------------
 
 .. code-block:: c++
 
- x.get_output_iterator()
+ x.get_back_inserter()
 
 Fetches an output iterator for the list x.
 The list should be unique. If not, the handle x 
-detaches its current list and is set to empty,
+detaches its current list and is set to a copy,
 making it unique. A prefix of the previous list may
 be lost because the head node's refcount is decremented.
 Note the whole list cannot be lost because it would have to be
@@ -282,4 +282,48 @@ The pre-increment and post-increment operators have no effect.
 The dereference operator returns a proxy which accepts an assignment
 from the list value type, which causes a new node to be appended
 to the end of the list and the output iterator then advances.
+
+Note, the iterator returned by this method is faster than
+
+.. code-block:: c++
+
+  std::back_inserter(x)
+
+however at present it is not fully safe. If the iterator is retained
+and the list shared, subsequent insertions will also be shared.
+
+
+
+push_front
+----------
+
+.. code-block:: c++
+
+  x.push_front(v);
+
+Sematically equivalent to
+
+.. code-block:: c++
+
+  x = x.cons(v);
+
+Returns a reference to x.
+
+push_back
+---------
+
+.. code-block:: c++
+
+  x.push_back(v);
+
+Sematically equivalent to
+
+.. code-block:: c++
+
+  x = x + v;
+
+Returns a reference to x.
+
+
+
 

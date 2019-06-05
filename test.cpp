@@ -1,8 +1,11 @@
+#define SLIST_DEBUG_ALLOCATIONS 1
 #include "slist.hpp"
 #include <iostream>
 #include <string>
 #include <vector>
 #include <initializer_list>
+#include <chrono>
+#include <list>
 
 using namespace std;
 
@@ -14,8 +17,9 @@ string double_to_string(double x) { return to_string(x); }
 
 using namespace Slist;
 
-int main() {
+void test () {
   cout << "Hello world" << endl; 
+/*
   slist<int> x;
   cout << "x Default slist size = " << x.size() << ", uniq=" << x.uniq() << endl;
   auto y = x;
@@ -26,8 +30,8 @@ int main() {
   cout << " y = " << str (int_to_string,y) << endl;
   cout << "x Cons size = " << x.size() << ", uniq=" << x.uniq() << endl;
   cout << "y Cons size = " << y.size() << ", uniq=" << y.uniq() << endl;
-
-  x = slist<int>();
+*/
+  auto x = slist<int>();
   cout << "concat by cons test" << endl;
   x = cons(1,cons(2,cons(3,slist<int>())));
   cout << "x Cons size = " << x.size() << ", uniq=" << x.uniq() << endl;
@@ -38,6 +42,7 @@ int main() {
   x = rev (std::move(x)); // in place reversal
   cout << "Reversed again inplace  = " << str (int_to_string,x) << endl;
 
+/*
   auto z = join (x,y);
   cout << " z = x join y = " << str (int_to_string,z) << endl;
 
@@ -83,7 +88,7 @@ int main() {
 
   auto mapped = lfi.map ([] (int x) { return double(x) + 0.1; });
   cout << "mapped int->double " << str (double_to_string, mapped) << endl;
-  auto mapped2 = map/*<double>*/(lfi,[] (int x) { return double(x) + 0.1; });
+  auto mapped2 = map(lfi,[] (int x) { return double(x) + 0.1; });
   cout << "mapped " << str (double_to_string, mapped2) << endl;
 
   auto zipped = zip(lfv,filtered2);
@@ -115,5 +120,119 @@ int main() {
 
   auto sum = fold_left ([](int x, int y) { return x + y;},0,xx);
   cout << "Sum of last = " << sum << endl;
-  
+ */ 
+}
+
+slist<int> slist3M () {
+  slist<int> s;
+  auto it = s.get_back_inserter();
+  for (int j = 1; j<3'000'000; ++ j) *it = j;
+  return s;
+}
+
+void stime3M () {
+  auto start = chrono::steady_clock::now();
+  {
+    auto x = slist3M();
+    auto end = chrono::steady_clock::now();
+    double elapsed = double (chrono::duration_cast<chrono::microseconds>(end - start).count()) / 1e6;
+    cout << "slist<int> 3M elts: Construction time : " << elapsed		<< "s" << endl;
+    start = chrono::steady_clock::now();
+  }
+  auto end = chrono::steady_clock::now();
+  double elapsed = double (chrono::duration_cast<chrono::microseconds>(end - start).count()) / 1e6;
+  cout << "slist<int> 3M elts: Destruction time : " << elapsed		<< "s" << endl;
+}
+
+
+list<int> list3M () {
+  list<int> s;
+  auto it = back_inserter(s);
+  for (int j = 1; j<3'000'000; ++ j) *it++ = j;
+  return s;
+}
+
+void time3M () {
+  auto start = chrono::steady_clock::now();
+  {
+    auto x = list3M();
+    auto end = chrono::steady_clock::now();
+    double elapsed = double (chrono::duration_cast<chrono::microseconds>(end - start).count()) / 1e6;
+    cout << "list<int> 3M elts: Construction time : " << elapsed		<< "s" << endl;
+    start = chrono::steady_clock::now();
+  }
+  auto end = chrono::steady_clock::now();
+  double elapsed = double (chrono::duration_cast<chrono::microseconds>(end - start).count()) / 1e6;
+  cout << "list<int> 3M elts: Destruction time : " << elapsed		<< "s" << endl;
+}
+
+double scopyandprepend1() {
+  auto x = slist3M();
+  auto start = chrono::steady_clock::now();
+  auto y = x;
+  x.push_front(-1);
+  y.push_front(-2);
+  auto a = x.head();
+  auto b = y.head();
+  assert(a == -1);
+  assert(b == -2);
+  auto end = chrono::steady_clock::now();
+  double elapsed = double (chrono::duration_cast<chrono::microseconds>(end - start).count()) / 1e6;
+  return elapsed;
+}
+
+double copyandprepend1() {
+  auto x = list3M();
+  auto start = chrono::steady_clock::now();
+  auto y = x;
+  x.push_front(-1);
+  y.push_front(-2);
+  auto a = *(x.begin());
+  auto b = *(y.begin());
+  assert(a == -1);
+  assert(b == -2);
+  auto end = chrono::steady_clock::now();
+  double elapsed = double (chrono::duration_cast<chrono::microseconds>(end - start).count()) / 1e6;
+  return elapsed;
+}
+
+double scopyandappend1() {
+  auto x = slist3M();
+  auto start = chrono::steady_clock::now();
+  auto y = x;
+  x.push_back(-1);
+  y.push_back(-2);
+  auto end = chrono::steady_clock::now();
+  double elapsed = double (chrono::duration_cast<chrono::microseconds>(end - start).count()) / 1e6;
+  return elapsed;
+}
+
+double copyandappend1() {
+  auto x = list3M();
+  auto start = chrono::steady_clock::now();
+  auto y = x;
+  x.push_back(-1);
+  y.push_back(-2);
+  auto end = chrono::steady_clock::now();
+  double elapsed = double (chrono::duration_cast<chrono::microseconds>(end - start).count()) / 1e6;
+  return elapsed;
+}
+
+void time(string desc, double (*f)())
+{
+  auto elapsed = f();
+  cout << desc << " : " << elapsed		<< "s" << endl;
+}
+
+
+int main() { 
+  test();
+  stime3M();
+  time3M();
+  time("Slist copy and prepend each", scopyandprepend1);
+  time("List  copy and prepend each", copyandprepend1);
+  time("Slist copy and append each", scopyandappend1);
+  time("List  copy and append each", copyandappend1);
+  cout << "Allocated nodes on exit = " << get_nalloc() << endl;
+  assert (get_nalloc() == 0);
 }
